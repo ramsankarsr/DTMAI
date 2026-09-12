@@ -59,6 +59,19 @@ export class DengueApp {
       });
     }
 
+    // Documentation Load Preset buttons
+    document.querySelectorAll('.doc-preset-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const presetId = e.currentTarget.dataset.preset;
+        if (presetId) {
+          const select = document.getElementById('presetSelect');
+          if (select) select.value = presetId;
+          this.selectPreset(presetId);
+          this.switchTab('dashboard');
+        }
+      });
+    });
+
     // Run Simulation button
     const runBtn = document.getElementById('runSimBtn');
     if (runBtn) {

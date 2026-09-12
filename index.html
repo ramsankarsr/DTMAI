@@ -37,6 +37,7 @@
       <button class="nav-tab" data-tab="economics">Health Economics (CEA / CUA)</button>
       <button class="nav-tab" data-tab="budget">Budget Impact (BIA)</button>
       <button class="nav-tab" data-tab="comparison">Scenario Benchmarking</button>
+      <button class="nav-tab doc-nav-tab" data-tab="docs">📖 User Guide &amp; Documentation</button>
     </div>
   </nav>
 
@@ -358,6 +359,345 @@
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- TAB 8: User Guide & Scientific Documentation -->
+      <div id="docsTab" class="tab-pane">
+        
+        <!-- Documentation Header Hero -->
+        <div class="docs-hero-card">
+          <div class="docs-badge">Scientific User Manual &amp; Policy Guide</div>
+          <h2 class="docs-hero-title">Dengue Dynamic Transmission &amp; HEOR Decision Suite</h2>
+          <p class="docs-hero-desc">
+            A comprehensive interactive guide to simulating 4-serotype dengue transmission dynamics, evaluating TAK-003 (QDENGA&reg;) vaccine rollouts, vector control interventions, and conducting multi-decade Health Economics and Outcomes Research (HEOR) in Thailand ($N = 66.5\text{M}$).
+          </p>
+          
+          <!-- Quick Anchor Nav -->
+          <div class="docs-quick-links">
+            <a href="#docQuickStart" class="docs-pill">🚀 Quick Start</a>
+            <a href="#docPresets" class="docs-pill">📋 Strategy Presets</a>
+            <a href="#docControls" class="docs-pill">⚙️ Simulation Controls</a>
+            <a href="#docDashboards" class="docs-pill">📊 7 Dashboards Guide</a>
+            <a href="#docHEOR" class="docs-pill">💰 Health Economics &amp; ICER</a>
+            <a href="#docMath" class="docs-pill">📐 Mathematical Model</a>
+            <a href="#docFAQ" class="docs-pill">❓ FAQ</a>
+          </div>
+        </div>
+
+        <!-- Section 1: Quick Start Guide -->
+        <div id="docQuickStart" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">STEP-BY-STEP WORKFLOW</div>
+            <h3 class="docs-card-title">🚀 4-Step Quick Start Guide</h3>
+          </div>
+          
+          <div class="docs-steps-grid">
+            <div class="step-box">
+              <div class="step-num">1</div>
+              <div class="step-title">Select a Strategy Preset</div>
+              <p class="step-desc">Use the <strong>Strategy Preset</strong> dropdown on the left sidebar to load pre-calibrated research scenarios (e.g., <em>Routine R11 Base</em>, <em>Routine R9 Base</em>, <em>Wolbachia Vector Control</em>, or <em>Combined Intervention</em>).</p>
+            </div>
+            
+            <div class="step-box">
+              <div class="step-num">2</div>
+              <div class="step-title">Fine-Tune Policy Parameters</div>
+              <p class="step-desc">Adjust the <strong>Target Routine Age</strong> (4–18 yrs), <strong>Coverage Rate</strong> (10–100%), <strong>Catch-Up Age Cohorts</strong>, <strong>Vector Biting Suppression</strong>, or <strong>Vaccine Dose Price</strong> ($/dose).</p>
+            </div>
+
+            <div class="step-box">
+              <div class="step-num">3</div>
+              <div class="step-title">Run the 4-Serotype ODE Solver</div>
+              <p class="step-desc">Click the <strong class="text-cyan">Run Simulation</strong> button. The 189,375-equation ODE solver numerically integrates transmission dynamics, demographic ageing, and Markov traces over 20 years.</p>
+            </div>
+
+            <div class="step-box">
+              <div class="step-num">4</div>
+              <div class="step-title">Analyze &amp; Export Policy Insights</div>
+              <p class="step-desc">Explore clinical impacts, Cost-Effectiveness planes, and Budget Impact timelines across the navigation tabs, then click <strong>Export CSV</strong> or <strong>Export JSON</strong> for reporting.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Policy Presets Overview -->
+        <div id="docPresets" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">RESEARCH SCENARIOS</div>
+            <h3 class="docs-card-title">📋 Built-in Policy Strategies &amp; Presets</h3>
+            <p class="docs-card-sub">Pre-configured scenarios mirroring the peer-reviewed health economic evaluation in <em>Shen, Kharitonova et al. (PLOS Medicine 2025)</em>:</p>
+          </div>
+
+          <div class="docs-presets-table-wrapper">
+            <table class="data-table docs-table">
+              <thead>
+                <tr>
+                  <th>Strategy Preset</th>
+                  <th>Target Population</th>
+                  <th>Coverage</th>
+                  <th>Catch-Up Campaign</th>
+                  <th>Vector Suppression</th>
+                  <th>Expected 20-Yr Impact</th>
+                  <th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong class="text-white">Baseline (No Vaccine)</strong></td>
+                  <td>Standard Care</td>
+                  <td>0%</td>
+                  <td>None</td>
+                  <td>0%</td>
+                  <td>Natural 4-serotype endemic cycles (~1.1M cases/20yr)</td>
+                  <td><button class="btn-table-apply doc-preset-btn" data-preset="baseline">Load Preset</button></td>
+                </tr>
+                <tr class="highlight-row">
+                  <td><strong class="text-cyan">Routine R11 Base (Recommended)</strong></td>
+                  <td>11-Year-Old Cohorts</td>
+                  <td>87%</td>
+                  <td>None</td>
+                  <td>0%</td>
+                  <td><strong>-81.5% Cases, -86.7% Hosp, Dominant ($1.73B saved)</strong></td>
+                  <td><button class="btn-table-apply doc-preset-btn" data-preset="r11_base">Load Preset</button></td>
+                </tr>
+                <tr>
+                  <td><strong class="text-white">Routine R9 Base</strong></td>
+                  <td>9-Year-Old Cohorts</td>
+                  <td>87%</td>
+                  <td>None</td>
+                  <td>0%</td>
+                  <td>-74.8% Cases, -78.4% Hosp, Dominant ($1.54B saved)</td>
+                  <td><button class="btn-table-apply doc-preset-btn" data-preset="r9_base">Load Preset</button></td>
+                </tr>
+                <tr>
+                  <td><strong class="text-white">R9 + Catch-Up (Ages 10–17)</strong></td>
+                  <td>9-Yr Routine + 10–17 Catch-up</td>
+                  <td>87%</td>
+                  <td>Year 1 (10–17 yrs)</td>
+                  <td>0%</td>
+                  <td>-88.6% Cases, -91.2% Hosp, accelerated early suppression</td>
+                  <td><button class="btn-table-apply doc-preset-btn" data-preset="r9_catchup">Load Preset</button></td>
+                </tr>
+                <tr>
+                  <td><strong class="text-white">Wolbachia Vector Control</strong></td>
+                  <td>All Ages (Vector Biocontrol)</td>
+                  <td>N/A</td>
+                  <td>None</td>
+                  <td>60% biting &amp; density</td>
+                  <td>-57.8% Cases, -59.3% Hosp, reduces transmission force</td>
+                  <td><button class="btn-table-apply doc-preset-btn" data-preset="wolbachia">Load Preset</button></td>
+                </tr>
+                <tr>
+                  <td><strong class="text-violet">Combined (R11 + Wolbachia)</strong></td>
+                  <td>11-Yr Cohorts + Vector Suppr.</td>
+                  <td>87%</td>
+                  <td>None</td>
+                  <td>60% biting &amp; density</td>
+                  <td><strong>-93.5% Cases, -95.1% Hosp (Maximum Synergy)</strong></td>
+                  <td><button class="btn-table-apply doc-preset-btn" data-preset="combined">Load Preset</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 3: Sidebar Controls Detailed Guide -->
+        <div id="docControls" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">PARAMETER DEFINITIONS</div>
+            <h3 class="docs-card-title">⚙️ Interactive Sidebar Parameters &amp; Configurations</h3>
+          </div>
+
+          <div class="docs-grid-2col">
+            <div class="docs-detail-panel">
+              <h4 class="docs-panel-title text-cyan">💉 Vaccination Strategy Controls</h4>
+              <ul class="docs-list">
+                <li><strong>Enable Vaccination (TAK-003):</strong> Toggles annual pulsed routine immunization for eligible age cohorts.</li>
+                <li><strong>Routine Target Age (Years):</strong> Target age cohort (slider: 4–18 years). In Thailand, age 11 captures highest pre-exposure seropositivity without missing peak adolescent disease incidence.</li>
+                <li><strong>Coverage Rate (%):</strong> Percentage of the target single-year birth cohort receiving the full 2-dose regimen (default: 87% national EPI target).</li>
+                <li><strong>Catch-Up Campaign (Yr 1):</strong> One-time mass immunization campaign deployed in Year 1 across ages 10 to 17.</li>
+                <li><strong>Pre-Screening (Test-Before-Vac):</strong> Simulates rapid pre-vaccination serological screening to restrict administration solely to seropositive individuals.</li>
+              </ul>
+            </div>
+
+            <div class="docs-detail-panel">
+              <h4 class="docs-panel-title text-emerald">🦟 Vector Control &amp; Health Economics Controls</h4>
+              <ul class="docs-list">
+                <li><strong>Enable Vector Control:</strong> Modifies mosquito-to-human transmission dynamics via Wolbachia introgression or source reduction.</li>
+                <li><strong>Biting Rate Reduction (&alpha;):</strong> Proportional reduction in daily biting frequency (0–100%).</li>
+                <li><strong>Mosquito Density Ratio Reduction ($N_v/N_h$):</strong> Proportional reduction in adult female <em>Aedes aegypti</em> per person.</li>
+                <li><strong>Vaccine Price ($/Dose):</strong> Unit acquisition cost per dose (default: $30/dose; 2-dose series = $60).</li>
+                <li><strong>Discount Rate (%/Year):</strong> Annual economic discount rate for costs and health utilities (default: 3.0%).</li>
+                <li><strong>Perspective:</strong> Societal (direct medical + non-medical + indirect productivity) vs Healthcare Payer (direct medical only).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Navigating the 7 Core Analytical Dashboards -->
+        <div id="docDashboards" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">ANALYTICAL SUITE</div>
+            <h3 class="docs-card-title">📊 Guide to the 7 Analytical Dashboards</h3>
+          </div>
+
+          <div class="docs-feature-list">
+            
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">📈</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">1. Executive Dashboard</h4>
+                <p>Provides high-level health policy indicators: <strong>Symptomatic Cases Averted</strong>, <strong>Hospitalizations Averted</strong>, <strong>DALYs Averted</strong>, <strong>Net Cost Savings</strong>, <strong>ICER vs WTP</strong>, and the <strong>Max Cost-Effective Dose Price</strong>. Features dual interactive time-series plots comparing baseline vs intervention trajectories over 20 years.</p>
+              </div>
+            </div>
+
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">🔬</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">2. 4-Serotype Dynamics (DENV-1, 2, 3, 4)</h4>
+                <p>Visualizes multi-decade transmission trajectories broken down by specific serotype. Highlights potential serotype replacement risks, shifts in median age of infection, and tracks secondary severe infections mediated by Antibody-Dependent Enhancement (ADE).</p>
+              </div>
+            </div>
+
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">💉</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">3. Vaccination Strategy &amp; Markov Tunnel Decay</h4>
+                <p>Displays empirical TAK-003 vaccine efficacy curves against symptomatic disease and hospitalization. Tracks the 5-year Markov tunnel transitions ($V_0 \rightarrow V_5$) and illustrates breakthrough natural infection boosting mechanisms.</p>
+              </div>
+            </div>
+
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">🦟</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">4. Vector Control Interventions</h4>
+                <p>Models the ecological impact of Wolbachia introgression and larval source reduction on vector density, mosquito lifespan, and extrinsic incubation periods.</p>
+              </div>
+            </div>
+
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">💰</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">5. Health Economics (CEA / CUA &amp; Cost-Effectiveness Plane)</h4>
+                <p>Maps the strategy onto the 4-quadrant Cost-Effectiveness Plane against Thailand's national Willingness-to-Pay threshold ($1\times\text{GDP per capita} \approx \$7,000/\text{DALY}$). Displays cost waterfall breakdowns (Direct Medical Inpatient, Outpatient, Direct Non-Medical, Indirect Productivity Loss, and Vaccine Program Costs).</p>
+              </div>
+            </div>
+
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">📉</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">6. Budget Impact Analysis (BIA)</h4>
+                <p>Presents annual fiscal cash flows for Ministry of Public Health budget planning, comparing upfront immunization expenditures against cumulative treatment cost offsets over 20 years.</p>
+              </div>
+            </div>
+
+            <div class="docs-feature-item">
+              <div class="docs-feature-icon">🏆</div>
+              <div class="docs-feature-content">
+                <h4 class="text-white">7. Scenario Benchmarking Matrix</h4>
+                <p>A comprehensive side-by-side comparative table ranking all pre-configured and custom strategies by epidemiological burden averted, Net Monetary Benefit, ICER, and Cost-Effectiveness dominance.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 5: Health Economics & Decision Framework -->
+        <div id="docHEOR" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">ECONOMIC FRAMEWORK</div>
+            <h3 class="docs-card-title">💰 Health Economics &amp; HEOR Decision Framework</h3>
+          </div>
+
+          <div class="docs-grid-3col">
+            <div class="docs-concept-card">
+              <div class="docs-concept-badge">DALYs &amp; QALYs</div>
+              <h5>Burden of Disease Metrics</h5>
+              <p>$$\text{DALY} = \text{YLL} + \text{YLD}$$</p>
+              <p>Disability-Adjusted Life Years combine Years of Life Lost due to premature dengue mortality ($\text{YLL}$) with Years Lived with Disability ($\text{YLD}$), using standardized disability weights: Outpatient ($DW = 0.051$), Inpatient ($DW = 0.210$), Fatal ($DW = 1.000$).</p>
+            </div>
+
+            <div class="docs-concept-card">
+              <div class="docs-concept-badge">ICER &amp; Dominance</div>
+              <h5>Cost-Effectiveness Ratio</h5>
+              <p>$$\text{ICER} = \frac{\Delta \text{Cost}}{\Delta \text{DALYs Averted}}$$</p>
+              <p>If an intervention yields more health benefits ($\Delta \text{DALYs} &gt; 0$) while resulting in net cost savings ($\Delta \text{Cost} &lt; 0$), it is mathematically classified as <strong>DOMINANT</strong> (cost-saving and superior).</p>
+            </div>
+
+            <div class="docs-concept-card">
+              <div class="docs-concept-badge">WTP &amp; Price Ceiling</div>
+              <h5>Decision Thresholds</h5>
+              <p>$$\text{WTP Threshold} \approx \$7,000 / \text{DALY}$$</p>
+              <p>Represents $1\times\text{GDP per capita}$ in Thailand. The <strong>Max Threshold Price</strong> calculates the highest vaccine price per dose at which the vaccination program remains cost-effective compared to baseline.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 6: Mathematical Model Architecture -->
+        <div id="docMath" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">MATHEMATICAL FORMULATION</div>
+            <h3 class="docs-card-title">📐 Mathematical Transmission Architecture</h3>
+            <p class="docs-card-sub">Formulation of the 4-serotype age-structured host-vector ODE system ($i \in \{1,2,3,4\}$):</p>
+          </div>
+
+          <div class="docs-math-box">
+            <div class="math-row">
+              <div class="math-label">Human Force of Infection:</div>
+              <div class="math-expr">\lambda_{h,i}(t) = \beta_h \cdot b \cdot \frac{I_{v,i}(t)}{N_h(t)}</div>
+            </div>
+            <div class="math-row">
+              <div class="math-label">Vector Force of Infection:</div>
+              <div class="math-expr">\lambda_{v,i}(t) = \beta_v \cdot b \cdot \frac{I_{h,i}(t) + \gamma_{CE} \cdot I_{h,i}^{\text{sec}}(t)}{N_h(t)}</div>
+            </div>
+            <div class="math-row">
+              <div class="math-label">ADE &amp; Cross-Protection:</div>
+              <div class="math-expr">\gamma_{CE} = 1.30 \quad (\text{ADE Infectivity Enhancer}), \quad \sigma_{CP} = \frac{1}{0.5\text{ yr}} \quad (\text{Cross-Protection Clearance})</div>
+            </div>
+            <div class="math-row">
+              <div class="math-label">Markov Efficacy Waning:</div>
+              <div class="math-expr">V_{a, s, k} \xrightarrow{\omega_k} V_{a, s, k+1} \quad (k \in \{0, 1, 2, 3, 4, 5\}) \quad \text{with natural boosting reset}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 7: FAQ -->
+        <div id="docFAQ" class="docs-card">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">FREQUENTLY ASKED QUESTIONS</div>
+            <h3 class="docs-card-title">❓ Frequently Asked Questions (FAQ)</h3>
+          </div>
+
+          <div class="faq-list">
+            <div class="faq-item">
+              <div class="faq-q">Why is Routine R11 (Age 11) the standard recommendation in the PLOS Medicine 2025 study?</div>
+              <div class="faq-a">In Thailand, seroprevalence rises rapidly during primary school. Targeting 11-year-olds provides optimal timing: high baseline seropositivity (which maximizes TAK-003 efficacy across all 4 serotypes) while preceding the highest clinical disease burden during secondary school and adolescence.</div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-q">What is the difference between Societal and Healthcare Payer perspectives?</div>
+              <div class="faq-a">The <strong>Societal Perspective</strong> encompasses direct medical costs (hospitalization, clinics), direct non-medical costs (transport, caregiver expenses), and indirect costs (lost wages, productivity loss). The <strong>Healthcare Payer Perspective</strong> accounts strictly for direct medical expenditures reimbursed by national health funds.</div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-q">Can I export the simulation trajectories for external analysis or reporting?</div>
+              <div class="faq-a">Yes! Clicking <strong>Export CSV</strong> in the top header downloads a full multi-year matrix of cases, hospitalizations, DALYs, and economic costs. <strong>Export JSON</strong> exports structured configuration metadata and aggregate outcomes for exact computational reproducibility.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 8: Citations & Methodology References -->
+        <div id="docCitations" class="docs-card" style="margin-bottom: 24px;">
+          <div class="docs-card-header">
+            <div class="docs-section-tag">SCIENTIFIC CITATIONS</div>
+            <h3 class="docs-card-title">📚 Key Methodological References</h3>
+          </div>
+          
+          <ul class="docs-citation-list">
+            <li><strong>Primary Model Reference:</strong> Shen M, Kharitonova M, et al. (2025). <em>Health economics and public health impact of tetravalent dengue vaccination (TAK-003) in Thailand: A 4-serotype dynamic transmission modeling study</em>. <strong>PLOS Medicine</strong>, 22(3): e1004631.</li>
+            <li><strong>Clinical Efficacy Trial:</strong> Biswal S, Borja-Tabora C, et al. (2020). <em>Efficacy of a tetravalent dengue vaccine in healthy children and adolescents</em>. <strong>New England Journal of Medicine</strong>, 381(21): 2009-2019.</li>
+            <li><strong>Economic Guidelines:</strong> WHO (2019). <em>WHO guide for standardization of economic evaluations of immunization programmes</em>. World Health Organization, Geneva.</li>
+          </ul>
+        </div>
+
       </div>
 
     </section>
