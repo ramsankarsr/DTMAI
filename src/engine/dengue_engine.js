@@ -85,6 +85,44 @@ export function computeTheta(k, l, m, gammaCP = 0.0, dzetaCE = 0, gammaCE = 1.0,
   return minSigma;
 }
 
+// Precompute state transitions and flags ONCE for all 625 states
+export const STATE_INFO = new Array(TOTAL_STATES_PER_AGE);
+for (let j = 0; j < 5; j++) {
+  for (let k = 0; k < 5; k++) {
+    for (let l = 0; l < 5; l++) {
+      for (let m = 0; m < 5; m++) {
+        const idx = j * 125 + k * 25 + l * 5 + m;
+        const pastInfs = (j >= 1 ? 1 : 0) + (k >= 1 ? 1 : 0) + (l >= 1 ? 1 : 0) + (m >= 1 ? 1 : 0);
+        STATE_INFO[idx] = {
+          idx, j, k, l, m,
+          pastInfs,
+          infTypeIdx: Math.min(2, pastInfs),
+          isInf0: j === 2,
+          isInf1: k === 2,
+          isInf2: l === 2,
+          isInf3: m === 2,
+          nextJ1: 1 * 125 + k * 25 + l * 5 + m,
+          nextJ2: 2 * 125 + k * 25 + l * 5 + m,
+          nextJ3: 3 * 125 + k * 25 + l * 5 + m,
+          nextJ4: 4 * 125 + k * 25 + l * 5 + m,
+          nextK1: j * 125 + 1 * 25 + l * 5 + m,
+          nextK2: j * 125 + 2 * 25 + l * 5 + m,
+          nextK3: j * 125 + 3 * 25 + l * 5 + m,
+          nextK4: j * 125 + 4 * 25 + l * 5 + m,
+          nextL1: j * 125 + k * 25 + 1 * 5 + m,
+          nextL2: j * 125 + k * 25 + 2 * 5 + m,
+          nextL3: j * 125 + k * 25 + 3 * 5 + m,
+          nextL4: j * 125 + k * 25 + 4 * 5 + m,
+          nextM1: j * 125 + k * 25 + l * 5 + 1,
+          nextM2: j * 125 + k * 25 + l * 5 + 2,
+          nextM3: j * 125 + k * 25 + l * 5 + 3,
+          nextM4: j * 125 + k * 25 + l * 5 + 4
+        };
+      }
+    }
+  }
+}
+
 /**
  * Fast Vectorized Dengue Dynamic Model Simulator
  */
@@ -117,17 +155,23 @@ export class DengueSimulationModel {
     this.gammaCE = this.epi.gammaCE || 1.0;
     this.dzetaCE = this.epi.dzetaCE || 0;
 
+    this.dt = 1.0;
     this.xiH = 1.0 / this.durLatencyH;
     this.rhoH = 1.0 / this.durVirH;
     this.phiCP = 1.0 / this.durCP;
     this.xiV = 1.0 / this.durLatencyV;
     this.muV = 1.0 / this.leV;
 
+    // Precomputed exact transition factors for latency, infectiousness, and cross-protection
+    this.pTransXi = 1.0 - Math.exp(-this.xiH * this.dt);
+    this.pTransRho = 1.0 - Math.exp(-this.rhoH * this.dt);
+    this.pTransPhi = 1.0 - Math.exp(-this.phiCP * this.dt);
+
     this.betaVHAgeCoef = new Float64Array(this.epi.betaVH_age_coef || new Array(101).fill(1.0));
   }
 
   simulateYear(yearIdx, currentHostState, currentVectorState, vacEfficacies = null) {
-    const dt = 1.0;
+    const dt = this.dt;
     const daysInYear = 365;
     const vacLevels = this.vacSwitch ? 3 : 1;
     
@@ -154,33 +198,35 @@ export class DengueSimulationModel {
       vectorCapacity[day] = Math.max(0.1, this.ratioVH * this.totalPop * seasonalMod);
     }
 
+    const pTransXi = this.pTransXi;
+    const pTransRho = this.pTransRho;
+    const pTransPhi = this.pTransPhi;
+    const totalPop = Math.max(1.0, this.totalPop);
+
     for (let day = 0; day < daysInYear; day++) {
+      // 1. Calculate infectious host counts across active compartments
       const totalInfectiousH = new Float64Array(NUM_SEROTYPES);
       
       for (let v = 0; v < vacLevels; v++) {
         const vOffset = v * NUM_AGES * TOTAL_STATES_PER_AGE;
         for (let a = 0; a < NUM_AGES; a++) {
           const aOffset = vOffset + a * TOTAL_STATES_PER_AGE;
-          for (let stateIdx = 0; stateIdx < TOTAL_STATES_PER_AGE; stateIdx++) {
-            const count = yH[aOffset + stateIdx];
+          for (let s = 0; s < TOTAL_STATES_PER_AGE; s++) {
+            const count = yH[aOffset + s];
             if (count <= 0) continue;
-
-            const j = Math.floor(stateIdx / 125);
-            const k = Math.floor((stateIdx % 125) / 25);
-            const l = Math.floor((stateIdx % 25) / 5);
-            const m = stateIdx % 5;
-
-            if (j === 2) totalInfectiousH[0] += count;
-            if (k === 2) totalInfectiousH[1] += count;
-            if (l === 2) totalInfectiousH[2] += count;
-            if (m === 2) totalInfectiousH[3] += count;
+            const info = STATE_INFO[s];
+            if (info.isInf0) totalInfectiousH[0] += count;
+            if (info.isInf1) totalInfectiousH[1] += count;
+            if (info.isInf2) totalInfectiousH[2] += count;
+            if (info.isInf3) totalInfectiousH[3] += count;
           }
         }
       }
 
+      // 2. Vector Transmission ODE
       const foiV = new Float64Array(NUM_SEROTYPES);
       for (let s = 0; s < NUM_SEROTYPES; s++) {
-        foiV[s] = this.b * this.betaHV * (totalInfectiousH[s] / Math.max(1.0, this.totalPop));
+        foiV[s] = this.b * this.betaHV * (totalInfectiousH[s] / totalPop);
       }
 
       const totV = vectorCapacity[day];
@@ -205,14 +251,16 @@ export class DengueSimulationModel {
         yV[5 + s] = Math.max(0, Iv[s] + dIv[s] * dt);
       }
 
+      // 3. Host FOI per age
       const foiH = Array.from({ length: NUM_AGES }, () => new Float64Array(NUM_SEROTYPES));
       for (let a = 0; a < NUM_AGES; a++) {
         const ageCoef = this.betaVHAgeCoef[a] || 1.0;
         for (let s = 0; s < NUM_SEROTYPES; s++) {
-          foiH[a][s] = this.b * this.betaVH[s] * ageCoef * (yV[5 + s] / Math.max(1.0, this.totalPop));
+          foiH[a][s] = this.b * this.betaVH[s] * ageCoef * (yV[5 + s] / totalPop);
         }
       }
 
+      // 4. Host state transitions using direct STATE_INFO lookups
       for (let v = 0; v < vacLevels; v++) {
         const vOffset = v * NUM_AGES * TOTAL_STATES_PER_AGE;
         const isVac = v > 0;
@@ -220,131 +268,124 @@ export class DengueSimulationModel {
 
         for (let a = 0; a < NUM_AGES; a++) {
           const aOffset = vOffset + a * TOTAL_STATES_PER_AGE;
+          const aFoiH = foiH[a];
+
+          let eff0 = 0.0, eff1 = 0.0, eff2 = 0.0, eff3 = 0.0;
+          if (isVac && vacEfficacies) {
+            eff0 = vacEfficacies.getEfficacy(a, 0, isSeropositiveAtVac, yearIdx);
+            eff1 = vacEfficacies.getEfficacy(a, 1, isSeropositiveAtVac, yearIdx);
+            eff2 = vacEfficacies.getEfficacy(a, 2, isSeropositiveAtVac, yearIdx);
+            eff3 = vacEfficacies.getEfficacy(a, 3, isSeropositiveAtVac, yearIdx);
+          }
           
-          for (let j = 0; j < 5; j++) {
-            for (let k = 0; k < 5; k++) {
-              for (let l = 0; l < 5; l++) {
-                for (let m = 0; m < 5; m++) {
-                  const stateIdx = j * 125 + k * 25 + l * 5 + m;
-                  const count = yH[aOffset + stateIdx];
-                  if (count <= 1e-9) continue;
+          for (let s = 0; s < TOTAL_STATES_PER_AGE; s++) {
+            const count = yH[aOffset + s];
+            if (count <= 1e-9) continue;
+            const info = STATE_INFO[s];
+            const infTypeIdx = info.infTypeIdx;
 
-                  const pastInfs = (j >= 1 ? 1 : 0) + (k >= 1 ? 1 : 0) + (l >= 1 ? 1 : 0) + (m >= 1 ? 1 : 0);
-                  const infTypeIdx = Math.min(2, pastInfs);
-
-                  // DENV-1
-                  if (j === 0) {
-                    const eff = isVac && vacEfficacies ? vacEfficacies.getEfficacy(a, 0, isSeropositiveAtVac, yearIdx) : 0.0;
-                    const theta = computeTheta(k, l, m, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff);
-                    const transRate = foiH[a][0] * theta;
-                    const newCases = count * (1.0 - Math.exp(-transRate * dt));
-                    if (newCases > 0) {
-                      yH[aOffset + stateIdx] -= newCases;
-                      yH[aOffset + (1 * 125 + k * 25 + l * 5 + m)] += newCases;
-                      this._recordIncidence(annualIncidence, 0, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
-                    }
-                  } else if (j === 1) {
-                    const rate = 1.0 - Math.exp(-this.xiH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (2 * 125 + k * 25 + l * 5 + m)] += trans;
-                  } else if (j === 2) {
-                    const rate = 1.0 - Math.exp(-this.rhoH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (3 * 125 + k * 25 + l * 5 + m)] += trans;
-                  } else if (j === 3) {
-                    const rate = 1.0 - Math.exp(-this.phiCP * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (4 * 125 + k * 25 + l * 5 + m)] += trans;
-                  }
-
-                  // DENV-2
-                  if (k === 0) {
-                    const eff = isVac && vacEfficacies ? vacEfficacies.getEfficacy(a, 1, isSeropositiveAtVac, yearIdx) : 0.0;
-                    const theta = computeTheta(j, l, m, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff);
-                    const transRate = foiH[a][1] * theta;
-                    const newCases = count * (1.0 - Math.exp(-transRate * dt));
-                    if (newCases > 0) {
-                      yH[aOffset + stateIdx] -= newCases;
-                      yH[aOffset + (j * 125 + 1 * 25 + l * 5 + m)] += newCases;
-                      this._recordIncidence(annualIncidence, 1, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
-                    }
-                  } else if (k === 1) {
-                    const rate = 1.0 - Math.exp(-this.xiH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + 2 * 25 + l * 5 + m)] += trans;
-                  } else if (k === 2) {
-                    const rate = 1.0 - Math.exp(-this.rhoH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + 3 * 25 + l * 5 + m)] += trans;
-                  } else if (k === 3) {
-                    const rate = 1.0 - Math.exp(-this.phiCP * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + 4 * 25 + l * 5 + m)] += trans;
-                  }
-
-                  // DENV-3
-                  if (l === 0) {
-                    const eff = isVac && vacEfficacies ? vacEfficacies.getEfficacy(a, 2, isSeropositiveAtVac, yearIdx) : 0.0;
-                    const theta = computeTheta(j, k, m, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff);
-                    const transRate = foiH[a][2] * theta;
-                    const newCases = count * (1.0 - Math.exp(-transRate * dt));
-                    if (newCases > 0) {
-                      yH[aOffset + stateIdx] -= newCases;
-                      yH[aOffset + (j * 125 + k * 25 + 1 * 5 + m)] += newCases;
-                      this._recordIncidence(annualIncidence, 2, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
-                    }
-                  } else if (l === 1) {
-                    const rate = 1.0 - Math.exp(-this.xiH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + k * 25 + 2 * 5 + m)] += trans;
-                  } else if (l === 2) {
-                    const rate = 1.0 - Math.exp(-this.rhoH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + k * 25 + 3 * 5 + m)] += trans;
-                  } else if (l === 3) {
-                    const rate = 1.0 - Math.exp(-this.phiCP * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + k * 25 + 4 * 5 + m)] += trans;
-                  }
-
-                  // DENV-4
-                  if (m === 0) {
-                    const eff = isVac && vacEfficacies ? vacEfficacies.getEfficacy(a, 3, isSeropositiveAtVac, yearIdx) : 0.0;
-                    const theta = computeTheta(j, k, l, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff);
-                    const transRate = foiH[a][3] * theta;
-                    const newCases = count * (1.0 - Math.exp(-transRate * dt));
-                    if (newCases > 0) {
-                      yH[aOffset + stateIdx] -= newCases;
-                      yH[aOffset + (j * 125 + k * 25 + l * 5 + 1)] += newCases;
-                      this._recordIncidence(annualIncidence, 3, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
-                    }
-                  } else if (m === 1) {
-                    const rate = 1.0 - Math.exp(-this.xiH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + k * 25 + l * 5 + 2)] += trans;
-                  } else if (m === 2) {
-                    const rate = 1.0 - Math.exp(-this.rhoH * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + k * 25 + l * 5 + 3)] += trans;
-                  } else if (m === 3) {
-                    const rate = 1.0 - Math.exp(-this.phiCP * dt);
-                    const trans = count * rate;
-                    yH[aOffset + stateIdx] -= trans;
-                    yH[aOffset + (j * 125 + k * 25 + l * 5 + 4)] += trans;
-                  }
+            // DENV-1 Transitions
+            if (info.j === 0) {
+              const theta = computeTheta(info.k, info.l, info.m, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff0);
+              if (theta > 0) {
+                const transRate = aFoiH[0] * theta;
+                const newCases = count * (1.0 - Math.exp(-transRate * dt));
+                if (newCases > 0) {
+                  yH[aOffset + s] -= newCases;
+                  yH[aOffset + info.nextJ1] += newCases;
+                  this._recordIncidence(annualIncidence, 0, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
                 }
               }
+            } else if (info.j === 1) {
+              const trans = count * pTransXi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextJ2] += trans;
+            } else if (info.j === 2) {
+              const trans = count * pTransRho;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextJ3] += trans;
+            } else if (info.j === 3) {
+              const trans = count * pTransPhi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextJ4] += trans;
+            }
+
+            // DENV-2 Transitions
+            if (info.k === 0) {
+              const theta = computeTheta(info.j, info.l, info.m, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff1);
+              if (theta > 0) {
+                const transRate = aFoiH[1] * theta;
+                const newCases = count * (1.0 - Math.exp(-transRate * dt));
+                if (newCases > 0) {
+                  yH[aOffset + s] -= newCases;
+                  yH[aOffset + info.nextK1] += newCases;
+                  this._recordIncidence(annualIncidence, 1, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
+                }
+              }
+            } else if (info.k === 1) {
+              const trans = count * pTransXi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextK2] += trans;
+            } else if (info.k === 2) {
+              const trans = count * pTransRho;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextK3] += trans;
+            } else if (info.k === 3) {
+              const trans = count * pTransPhi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextK4] += trans;
+            }
+
+            // DENV-3 Transitions
+            if (info.l === 0) {
+              const theta = computeTheta(info.j, info.k, info.m, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff2);
+              if (theta > 0) {
+                const transRate = aFoiH[2] * theta;
+                const newCases = count * (1.0 - Math.exp(-transRate * dt));
+                if (newCases > 0) {
+                  yH[aOffset + s] -= newCases;
+                  yH[aOffset + info.nextL1] += newCases;
+                  this._recordIncidence(annualIncidence, 2, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
+                }
+              }
+            } else if (info.l === 1) {
+              const trans = count * pTransXi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextL2] += trans;
+            } else if (info.l === 2) {
+              const trans = count * pTransRho;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextL3] += trans;
+            } else if (info.l === 3) {
+              const trans = count * pTransPhi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextL4] += trans;
+            }
+
+            // DENV-4 Transitions
+            if (info.m === 0) {
+              const theta = computeTheta(info.j, info.k, info.l, this.gammaCP, this.dzetaCE, this.gammaCE, 4, eff3);
+              if (theta > 0) {
+                const transRate = aFoiH[3] * theta;
+                const newCases = count * (1.0 - Math.exp(-transRate * dt));
+                if (newCases > 0) {
+                  yH[aOffset + s] -= newCases;
+                  yH[aOffset + info.nextM1] += newCases;
+                  this._recordIncidence(annualIncidence, 3, infTypeIdx, a, newCases, isVac, vacEfficacies, isSeropositiveAtVac, yearIdx);
+                }
+              }
+            } else if (info.m === 1) {
+              const trans = count * pTransXi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextM2] += trans;
+            } else if (info.m === 2) {
+              const trans = count * pTransRho;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextM3] += trans;
+            } else if (info.m === 3) {
+              const trans = count * pTransPhi;
+              yH[aOffset + s] -= trans;
+              yH[aOffset + info.nextM4] += trans;
             }
           }
         }

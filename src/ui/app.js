@@ -37,9 +37,12 @@ export class DengueApp {
     this._populatePresetsDropdown();
     this._renderPresetDetails();
 
-    // Initial simulation run: Baseline + Active preset
-    await this.runAllScenarios();
-    this.updateUI();
+    // Fast Initial Startup: Simulate ONLY Baseline + Active Preset (R11 Base)
+    // Non-blocking async execution ensuring smooth 60fps UI
+    await this.runSimulation();
+
+    // Lazily precompute other benchmark presets in idle background time
+    this._precomputeRemainingPresetsInBackground();
   }
 
   _bindEvents() {
@@ -193,7 +196,7 @@ export class DengueApp {
     }
   }
 
-  switchTab(tabId) {
+  async switchTab(tabId) {
     this.activeTab = tabId;
     document.querySelectorAll('.nav-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabId);
@@ -202,8 +205,25 @@ export class DengueApp {
       p.classList.toggle('active', p.id === `${tabId}Tab`);
     });
 
-    // Re-render current tab charts
-    this.renderCurrentTabCharts();
+    if (tabId === 'comparison') {
+      // Lazy compute missing scenarios for benchmark table
+      const missing = SCENARIO_PRESETS.some(p => !this.allScenarioResults.has(p.id));
+      if (missing) {
+        this._setLoading(true, 'Benchmarking All Scenarios...');
+        for (const p of SCENARIO_PRESETS) {
+          if (!this.allScenarioResults.has(p.id)) {
+            const res = await this.simulateScenario(p);
+            this.allScenarioResults.set(p.id, res);
+            await new Promise(r => setTimeout(r, 0));
+          }
+        }
+        this._setLoading(false);
+      }
+      this.renderComparisonTable();
+    } else {
+      // Re-render current tab charts
+      this.renderCurrentTabCharts();
+    }
   }
 
   /**
@@ -269,6 +289,11 @@ export class DengueApp {
       annualIncidences.push(simRes.annualIncidence);
 
       vacEffManager.incrementYear();
+
+      // Yield event loop to ensure smooth browser responsiveness and animation
+      if (yr % 2 === 0) {
+        await new Promise(r => setTimeout(r, 0));
+      }
     }
 
     // 3. Health Economic Evaluation
@@ -291,7 +316,7 @@ export class DengueApp {
   }
 
   async runSimulation() {
-    this._setLoading(true);
+    this._setLoading(true, 'Simulating 4-Serotypes...');
     try {
       // Always ensure baseline is simulated
       if (!this.baselineResults) {
@@ -313,35 +338,36 @@ export class DengueApp {
     }
   }
 
-  async runAllScenarios() {
-    this._setLoading(true);
-    try {
-      this.baselineResults = await this.simulateScenario(SCENARIO_PRESETS[0]);
-      this.allScenarioResults.set('baseline', this.baselineResults);
-
-      for (let p of SCENARIO_PRESETS) {
-        if (p.id === 'baseline') continue;
-        const res = await this.simulateScenario(p);
-        this.allScenarioResults.set(p.id, res);
+  _precomputeRemainingPresetsInBackground() {
+    // Non-blocking idle background scheduler
+    setTimeout(async () => {
+      for (const p of SCENARIO_PRESETS) {
+        if (this.allScenarioResults.has(p.id)) continue;
+        try {
+          const res = await this.simulateScenario(p);
+          this.allScenarioResults.set(p.id, res);
+          await new Promise(r => setTimeout(r, 80)); // Friendly delay between scenarios
+        } catch (e) {
+          console.warn('Background scenario compute notice:', e);
+        }
       }
-
-      this.activeScenarioResults = this.allScenarioResults.get(this.currentPresetId) || this.allScenarioResults.get('r11_base');
-    } finally {
-      this._setLoading(false);
-    }
+      if (this.activeTab === 'comparison') {
+        this.renderComparisonTable();
+      }
+    }, 800);
   }
 
-  _setLoading(isLoading) {
+  _setLoading(isLoading, customText = null) {
     this.isSimulating = isLoading;
     const btn = document.getElementById('runSimBtn');
     if (btn) {
       btn.disabled = isLoading;
-      btn.textContent = isLoading ? 'Simulating 4-Serotypes...' : 'Run Simulation';
+      btn.textContent = isLoading ? (customText || 'Simulating 4-Serotypes...') : 'Run Simulation';
     }
     const indicator = document.getElementById('statusIndicator');
     if (indicator) {
       indicator.className = isLoading ? 'status-indicator running' : 'status-indicator ready';
-      indicator.textContent = isLoading ? 'Simulating...' : 'Ready / Simulated';
+      indicator.textContent = isLoading ? (customText || 'Simulating...') : 'Ready / Simulated';
     }
   }
 
