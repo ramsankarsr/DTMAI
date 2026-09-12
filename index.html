@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dengue DTM 2025 | Dynamic Transmission & HEOR Decision Support System</title>
+  <meta name="description" content="A state-of-the-art replication of the 4-serotype Dengue Dynamic Transmission & Health Economic Model (Shen, Kharitonova et al., 2025, PLOS Medicine).">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="header-left">
+        <div class="logo-badge">DENGUE DTM</div>
+        <div>
+          <h1 class="brand-title">Dengue Dynamic Transmission Model <span>HEOR Decision Suite</span></h1>
+          <div class="header-meta">Replication of Shen, Kharitonova et al. (PLOS Medicine 2025) &bull; Thailand Baseline (N = 66.5M)</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="statusIndicator" class="status-indicator ready">Ready / Simulated</div>
+        <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
+        <button id="exportJsonBtn" class="btn-secondary">Export JSON</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav class="app-nav">
+    <div class="nav-container">
+      <button class="nav-tab active" data-tab="dashboard">Executive Dashboard</button>
+      <button class="nav-tab" data-tab="epidemiology">4-Serotype Dynamics</button>
+      <button class="nav-tab" data-tab="vaccination">Vaccination Strategy</button>
+      <button class="nav-tab" data-tab="vector">Vector Control</button>
+      <button class="nav-tab" data-tab="economics">Health Economics (CEA / CUA)</button>
+      <button class="nav-tab" data-tab="budget">Budget Impact (BIA)</button>
+      <button class="nav-tab" data-tab="comparison">Scenario Benchmarking</button>
+    </div>
+  </nav>
+
+  <!-- Main Content Layout -->
+  <main class="app-main">
+    
+    <!-- Sidebar: Scenario & Strategy Configurator -->
+    <aside class="sidebar">
+      
+      <!-- Preset Selector -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>Strategy Preset</span>
+          <button id="resetBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 11px;">Reset</button>
+        </div>
+        <div class="form-group">
+          <select id="presetSelect" class="form-select"></select>
+          <div id="presetDescription" class="preset-desc">Loading strategy preset...</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Timeframe (Years)</label>
+          <select id="timeframeSelect" class="form-select">
+            <option value="10">10 Years</option>
+            <option value="20" selected>20 Years (Study Standard)</option>
+            <option value="30">30 Years</option>
+          </select>
+        </div>
+        <button id="runSimBtn" class="btn-primary" style="margin-top: 12px;">Run Simulation</button>
+      </div>
+
+      <!-- Vaccine Parameters -->
+      <div class="panel-card">
+        <div class="panel-title">Vaccine Deployment</div>
+        <div class="form-group">
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="vacEnabled" class="form-checkbox" checked>
+            <span>Enable Vaccination (TAK-003)</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Routine Target Age</span>
+            <span id="routineAgeVal" class="form-label-val">11 years</span>
+          </div>
+          <input type="range" id="routineAge" class="form-range" min="4" max="18" value="11" step="1">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Coverage Rate</span>
+            <span id="coverageVal" class="form-label-val">87%</span>
+          </div>
+          <input type="range" id="coverage" class="form-range" min="10" max="100" value="87" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="catchUpEnabled" class="form-checkbox">
+            <span>Catch-Up Campaign (Yr 1)</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Catch-Up Age Bracket</span>
+            <span class="form-label-val"><span id="catchUpMinVal">6 yrs</span> - <span id="catchUpMaxVal">14 yrs</span></span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="catchUpMin" class="form-input" min="1" max="50" value="6">
+            <input type="number" id="catchUpMax" class="form-input" min="1" max="50" value="14">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="testBeforeVac" class="form-checkbox">
+            <span>Pre-Vaccination Serotesting</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Vector Control Parameters -->
+      <div class="panel-card">
+        <div class="panel-title">Vector Control</div>
+        <div class="form-group">
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="vecEnabled" class="form-checkbox">
+            <span>Enable Vector Control (Wolbachia)</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Biting Rate Reduction</span>
+            <span id="vecBitingVal" class="form-label-val">0%</span>
+          </div>
+          <input type="range" id="vecBitingReduction" class="form-range" min="0" max="80" value="0" step="5">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Mosquito Density Reduction</span>
+            <span id="vecRatioVal" class="form-label-val">0%</span>
+          </div>
+          <input type="range" id="vecRatioReduction" class="form-range" min="0" max="80" value="0" step="5">
+        </div>
+      </div>
+
+      <!-- Economic Parameters -->
+      <div class="panel-card">
+        <div class="panel-title">Economic Evaluation</div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Vaccine Price (Per Dose)</span>
+            <span id="vaccinePriceVal" class="form-label-val">$30</span>
+          </div>
+          <input type="range" id="vaccinePrice" class="form-range" min="5" max="150" value="30" step="1">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Annual Discount Rate</span>
+            <span id="discountRateVal" class="form-label-val">3%</span>
+          </div>
+          <input type="range" id="discountRate" class="form-range" min="0" max="10" value="3" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Evaluation Perspective</label>
+          <select id="perspective" class="form-select">
+            <option value="societal" selected>Societal Perspective (All Costs)</option>
+            <option value="payer">Healthcare Payer Perspective</option>
+          </select>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Content Tabs -->
+    <section class="content-area">
+
+      <!-- TAB 1: Executive Dashboard -->
+      <div id="dashboardTab" class="tab-pane active">
+        
+        <!-- Status & Decision Banner -->
+        <div id="ceaBanner" class="cea-banner dominant">
+          <div class="banner-badge">Dominant Strategy</div>
+          <div class="banner-text">Loading cost-effectiveness analysis...</div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card" style="--accent-color: var(--cyan-primary);">
+            <div class="kpi-title">Symptomatic Cases Averted</div>
+            <div id="kpiInfectionsAverted" class="kpi-value">-</div>
+            <div id="kpiInfectionsAvertedPct" class="kpi-sub">-</div>
+          </div>
+          <div class="kpi-card" style="--accent-color: var(--emerald-success);">
+            <div class="kpi-title">Hospitalizations Averted</div>
+            <div id="kpiHospAverted" class="kpi-value">-</div>
+            <div id="kpiHospAvertedPct" class="kpi-sub">-</div>
+          </div>
+          <div class="kpi-card" style="--accent-color: var(--violet-accent);">
+            <div class="kpi-title">DALYs Averted (Health Gain)</div>
+            <div id="kpiDalysAverted" class="kpi-value">-</div>
+            <div id="kpiQalysGained" class="kpi-sub">-</div>
+          </div>
+          <div class="kpi-card" style="--accent-color: var(--amber-warn);">
+            <div id="kpiNetCostLabel" class="kpi-title">Net Cost Savings</div>
+            <div id="kpiNetCost" class="kpi-value">-</div>
+            <div id="kpiICER" class="kpi-sub">-</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Charts -->
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Annual Symptomatic Dengue Incidence</div>
+                <div class="chart-subtitle">Baseline No-Vac vs. Active Strategy Over 20 Years</div>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="dashboardEpidemicChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Annual Total Costs ($ USD)</div>
+                <div class="chart-subtitle">Direct Medical, Indirect Productivity, &amp; Intervention Costs</div>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="dashboardCostBarChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TAB 2: Epidemiological Dynamics -->
+      <div id="epidemiologyTab" class="tab-pane">
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">4-Serotype Dengue Transmission Waves</div>
+                <div class="chart-subtitle">DENV-1, DENV-2, DENV-3, DENV-4 Annual Infection Trajectories</div>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="epiSerotypeChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Hospitalization Burden by Age Bracket</div>
+                <div class="chart-subtitle">Age-Stratified Severe &amp; Mild Inpatient Cases (Year 10 Snapshot)</div>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="epiAgeHospChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Vaccination Strategy -->
+      <div id="vaccinationTab" class="tab-pane">
+        <div class="panel-card">
+          <div class="panel-title">TAK-003 Clinical Efficacy &amp; Waning Mechanics</div>
+          <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+            TAK-003 (Qdenga) provides robust protective efficacy against all 4 dengue serotypes, with differential waning curves based on baseline serostatus:
+          </p>
+          <ul style="font-size: 13px; color: #94a3b8; margin: 12px 0 0 20px; line-height: 1.7;">
+            <li><strong>Seropositive Individuals ($V^+$)</strong>: Initial efficacy ~72% against symptomatic dengue, ~90% against hospitalization, with extended persistence.</li>
+            <li><strong>Seronegative Individuals ($V^-$)</strong>: Initial efficacy ~56% against symptomatic dengue, ~85% against hospitalization, with gradual waning over 4.5+ years.</li>
+            <li><strong>Natural Breakthrough Boosting</strong>: Breakthrough natural infections boost antibody titers, transitioning hosts along subsequent protective curves (Episodes 1 &rarr; 2 &rarr; 3 &rarr; 4).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TAB 4: Vector Control -->
+      <div id="vectorTab" class="tab-pane">
+        <div class="panel-card">
+          <div class="panel-title">Vector Dynamics &amp; Biological Suppression</div>
+          <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+            Models Aedes aegypti / albopictus mosquito population dynamics with sinusoidal seasonal capacity ($p_1 = 0.341$, $p_2 = -0.512$), 14-day adult lifespan, and 10-day extrinsic incubation period:
+          </p>
+          <ul style="font-size: 13px; color: #94a3b8; margin: 12px 0 0 20px; line-height: 1.7;">
+            <li><strong>Wolbachia Release</strong>: Reduces vector competence and biting transmission rate ($b$).</li>
+            <li><strong>Larviciding &amp; Source Reduction</strong>: Suppresses vector-to-host density ($V/H$).</li>
+            <li><strong>Synergy with Vaccination</strong>: Dual intervention suppresses force of infection while providing individual immunological protection.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TAB 5: Health Economics (CEA / CUA) -->
+      <div id="economicsTab" class="tab-pane">
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Cost Component Waterfall Breakdown</div>
+                <div class="chart-subtitle">Direct Medical, Non-Medical, Indirect Productivity, and Vaccine Program</div>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="ecoCostBreakdownChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Cost-Effectiveness Plane (CEA Quadrant)</div>
+                <div class="chart-subtitle">Incremental Cost vs. DALYs Averted against WTP Threshold ($7,000/DALY)</div>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="ceaPlaneChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: Budget Impact Analysis -->
+      <div id="budgetTab" class="tab-pane">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Budget Impact Analysis (BIA) Over 20 Years</div>
+              <div class="chart-subtitle">Upfront Vaccine Program Expenditure vs. Cumulative Treatment Cost Savings</div>
+            </div>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas id="budgetImpactBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 7: Multi-Scenario Benchmarking -->
+      <div id="comparisonTab" class="tab-pane">
+        <div class="table-card">
+          <div class="panel-title" style="margin-bottom: 12px;">Multi-Strategy Comparative Policy Matrix</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Strategy Name</th>
+                <th>Symptomatic Averted</th>
+                <th>Hospitalizations Averted</th>
+                <th>DALYs Averted</th>
+                <th>Total Cost</th>
+                <th>Net Cost Diff</th>
+                <th>ICER ($/DALY)</th>
+                <th>Max Threshold Price</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div><strong>Dengue DTM 2025</strong> &bull; Advanced Dynamic Transmission &amp; Health Economic Decision Suite</div>
+    <div style="margin-top: 4px;">Based on Shen, Kharitonova et al. (PLOS Medicine 2025) &bull; Modeled for national health policy decision support in Thailand.</div>
+  </footer>
+
+  <!-- Scripts -->
+  <script type="module" src="src/ui/app.js"></script>
+</body>
+</html>

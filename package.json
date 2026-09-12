@@ -1,0 +1,10 @@
+{
+  "name": "dengue-dtm-app",
+  "version": "1.0.0",
+  "description": "Dengue Dynamic Transmission & HEOR Decision Suite",
+  "type": "module",
+  "scripts": {
+    "start": "python server.py",
+    "test": "node test_simulation.js"
+  }
+}
